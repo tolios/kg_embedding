@@ -1,2 +1,3 @@
 # kg_embedding
-a kg embedding repo!
+This repo is designed for implementing various embedding algorithms for knowledge graphs.
+It is under development (for my thesis).

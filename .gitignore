@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#custom additions
+FB15k
+.DS_Store
+experiment.py
+experiment.pynb
+*.pth.tar
+saved_models
+toy
