@@ -2,35 +2,31 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-def tail_energies(triplet_batch: torch.LongTensor, model:torch.nn.Module):
-    #true triplets
-    h, l, t = triplet_batch[:, 0], triplet_batch[:, 1], triplet_batch[:, 2]
-    #
-    h = model.object_embedding_(h)
-    l = model.relationship_embedding_(l)
-    h, l = torch.unsqueeze(h, dim=1), torch.unsqueeze(l, dim=1)
-    h, l = h.expand(h.shape[0], model.n_objects, model.emb_dim), l.expand(l.shape[0], model.n_objects, model.emb_dim)
-    # emb_t: [batch_size, N, embed_size]
-    emb_t = model.object_embedding_.weight.data.expand(t.shape[0], model.n_objects, model.emb_dim)
-    #calculate energies!
-    E = model._energy(h, l, emb_t)
-    #return energies and corresponding tails!
-    return E, t
-
 def head_energies(triplet_batch: torch.LongTensor, model:torch.nn.Module):
     #true triplets
     h, l, t = triplet_batch[:, 0], triplet_batch[:, 1], triplet_batch[:, 2]
-    #
-    t = model.object_embedding_(t)
-    l = model.relationship_embedding_(l)
+    #strategy is to compare the same t,l with every head
     t, l = torch.unsqueeze(t, dim=1), torch.unsqueeze(l, dim=1)
-    t, l = t.expand(t.shape[0], model.n_objects, model.emb_dim), l.expand(l.shape[0], model.n_objects, model.emb_dim)
-    # emb_t: [batch_size, N, embed_size]
-    emb_h = model.object_embedding_.weight.data.expand(h.shape[0], model.n_objects, model.emb_dim)
+    t, l = t.expand(t.shape[0], model.n_objects), l.expand(l.shape[0], model.n_objects)
+    #every head per batch (expand)
+    emb_h = torch.arange(0, model.n_objects).expand(h.shape[0], model.n_objects)
     #calculate energies!
-    E = model._energy(emb_h, l, t)
+    E = model.predict(emb_h, l, t)
     #return energies and corresponding heads!
     return E, h
+
+def tail_energies(triplet_batch: torch.LongTensor, model:torch.nn.Module):
+    #true triplets
+    h, l, t = triplet_batch[:, 0], triplet_batch[:, 1], triplet_batch[:, 2]
+    #strategy is to compare the same h,l with every tail
+    h, l = torch.unsqueeze(h, dim=1), torch.unsqueeze(l, dim=1)
+    h, l = h.expand(h.shape[0], model.n_objects), l.expand(l.shape[0], model.n_objects)
+    #every tail per batch (expand)
+    emb_t = torch.arange(0, model.n_objects).expand(t.shape[0], model.n_objects)
+    #calculate energies!
+    E = model.predict(h, l, emb_t)
+    #return energies and corresponding tails!
+    return E, t
 
 def hits_at_N(data: torch.utils.data.Dataset, model: torch.nn.Module, N = 10, batch_size = 64):
     '''
