@@ -50,8 +50,11 @@ parser.add_argument("--weight_decay",
                     default=0.0,
                     type=float, help="Weight decay")
 parser.add_argument("--patience",
-                    default=5,
+                    default=-1,
                     type=int, help="Patience for early stopping")
+parser.add_argument("--val_calc",
+                    default = False,
+                    type=bool, help="Calculation of validation metrics after training...")
 #parse known and unknown args!!!
 args, unknown = parser.parse_known_args()
 
@@ -86,6 +89,7 @@ WEIGHT_DECAY = args.weight_decay
 PATIENCE = args.patience
 SAVE_PATH = args.save_path
 algorithm = args.algorithm
+val_calc = args.val_calc
 
 #now update model dictionary with possible given values!
 for arg in model_args:
@@ -109,14 +113,15 @@ model, losses, energies, c_energies, val_energies = training(model, train, val,
                 epochs = EPOCHS, batch_size = BATCH_SIZE, val_batch_size = VAL_BATCH_SIZE,
                 lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY, patience = PATIENCE)
 end = time.time()
-print('Calculating validation scores!')
-#calculating validation hits@10 and mean rank!
-hits_at = hits_at_N(val, model, batch_size = 256, N=10)*100
-m_rank = mean_rank(val, model, batch_size = 128)
+if val_calc:
+    print('Calculating validation scores!')
+    #calculating validation hits@10 and mean rank!
+    hits_at = hits_at_N(val, model, batch_size = 256, N=10)*100
+    m_rank = mean_rank(val, model, batch_size = 128)
 
-print('Validation scores: ')
-print(f'hits@10 = {hits_at} %')
-print(f'mean rank = {m_rank}')
+    print('Validation scores: ')
+    print(f'hits@10 = {hits_at} %')
+    print(f'mean rank = {m_rank}')
 
 #actuall epochs
 actual_epochs = len(energies)
@@ -151,8 +156,9 @@ with open(SAVE_PATH+'/train_config.txt', 'w') as file:
     file.write(f'VAL_BATCH_SIZE: {VAL_BATCH_SIZE}\n')
     file.write(f'LEARNING_RATE: {LEARNING_RATE}\n')
     file.write(f'WEIGHT_DECAY: {WEIGHT_DECAY}\n')
-    file.write(f'hits@10: {hits_at}%\n')
-    file.write(f'mean_rank: {m_rank}\n')
+    if val_calc:
+        file.write(f'hits@10: {hits_at}%\n')
+        file.write(f'mean_rank: {m_rank}\n')
     file.write('Model args:\n')
     for arg in model_args:
         file.write(f'{arg}: {model_args[arg]}\n')

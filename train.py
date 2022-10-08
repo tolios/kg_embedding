@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     epochs = 50, batch_size = 1024, val_batch_size = 1024,
-    lr = 0.001, weight_decay = 0.0005, patience = 5):
+    lr = 0.001, weight_decay = 0.0005, patience = -1):
     '''
     Iplementation of training. Receives embedding model, dataset of training and val data!.
     Returns trained model, training losses, Uncorrupted and Corrupted energies.
@@ -76,31 +76,34 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
         c_energies.append(running_cE/i)
         val_energies.append(running_val_E/j)
         #implementation of early stop using val_energy (fastest route (could use mean_rank for example))
-        if lowest_val_energy >= running_val_E/j:
-            #setting new energy!
-            lowest_val_energy = running_val_E/j
-            #save model checkpoint...
-            model.save('./checkpoint.pth.tar')
-            epoch_stop = epoch
-            #"zero out" counter
-            stop_counter = 1
-        else:
-            if stop_counter >= patience:
-                #no more patience...early stopping!
-                print('Early stopping at epoch:', epoch)
-                print('Loading from epoch:', epoch_stop)
-                #load model from previous checkpoint!
-                model.load('./checkpoint.pth.tar')
-                break
+        if patience != -1:
+            if lowest_val_energy >= running_val_E/j:
+                #setting new energy!
+                lowest_val_energy = running_val_E/j
+                #save model checkpoint...
+                model.save('./checkpoint.pth.tar')
+                epoch_stop = epoch
+                #"zero out" counter
+                stop_counter = 1
             else:
-                #be patient...
-                stop_counter += 1
-                #if in the end of training load from checkpoint!
-                if epoch == epochs:
-                    print('Finished during early stopping...')
+                if stop_counter >= patience:
+                    #no more patience...early stopping!
+                    print('Early stopping at epoch:', epoch)
                     print('Loading from epoch:', epoch_stop)
                     #load model from previous checkpoint!
                     model.load('./checkpoint.pth.tar')
+                    break
+                else:
+                    #be patient...
+                    stop_counter += 1
+                    #if in the end of training load from checkpoint!
+                    if epoch == epochs:
+                        print('Finished during early stopping...')
+                        print('Loading from epoch:', epoch_stop)
+                        #load model from previous checkpoint!
+                        model.load('./checkpoint.pth.tar')
+        else:
+            epoch_stop = epochs
     ## If checkpoint exists, delete it ##
     if os.path.isfile('./checkpoint.pth.tar'):
         os.remove('./checkpoint.pth.tar')
