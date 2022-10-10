@@ -130,6 +130,7 @@ dmypy.json
 
 #custom additions
 FB15k
+FB15k_237
 WN11
 .DS_Store
 experiment.py

@@ -29,13 +29,16 @@ class Model(torch.nn.Module):
         #used to implement loss! reduction = none, so it is used for outputing batch losses (later we sum them)
         self.criterion = torch.nn.MarginRankingLoss(margin=margin, reduction='none')
 
+    def normalize(self):
+        #with this method, all normalizations are performed.
+        #To be used before mini-batch training in each epoch.
+        self.object_embedding_.weight.data = normalize(self.object_embedding_.weight.data, dim = 1, p = self.norm)
+
     def forward(self, correct: torch.LongTensor, corrupted: torch.LongTensor):
         #this method calculates the loss used in training!
         #receives batch of correct and corrupted triples and calculates loss for each batch member.
         #it also returns seperately the energies of correct and corrupted triplets, for recording!
         #to get the correct loss it need an aggregation, which can happen outside the forward call!
-        #first we normalize object_embedding!
-        self.object_embedding_.weight.data = normalize(self.object_embedding_.weight.data, dim = 1, p = self.norm)
         #now we find all embeddings!
         h, l, t = correct[:, 0], correct[:, 1], correct[:, 2]
         #we throw out here the corrupted relationship, because its the same as the correct (transe alg)

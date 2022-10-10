@@ -3,12 +3,12 @@ import os
 import random
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torch.optim import Adam
+from torch.optim import Adam, SGD
 import matplotlib.pyplot as plt
 
 def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     epochs = 50, batch_size = 1024, val_batch_size = 1024,
-    lr = 0.001, weight_decay = 0.0005, patience = -1):
+    lr = 0.01, weight_decay = 0.0005, patience = -1):
     '''
     Iplementation of training. Receives embedding model, dataset of training and val data!.
     Returns trained model, training losses, Uncorrupted and Corrupted energies.
@@ -16,7 +16,7 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val, batch_size=val_batch_size, shuffle=True)
     #optimizers
-    optimizer = Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
+    optimizer = SGD(model.parameters(), lr = lr, weight_decay = weight_decay)
     #training begins...
     t_start = time.time()
     losses = []
@@ -34,9 +34,9 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
         running_loss = 0.0
         running_E = 0.0
         running_cE = 0.0
+        #perform normalizations before entering the mini-batch.
+        model.normalize()
         for i, batch in enumerate(train_loader):
-            #zero out gradients...
-            optimizer.zero_grad()
             #receive proper triplets
             hs, ls, ts = batch[:,0], batch[:, 1], batch[:, 2]
             #create corrupted triples!
@@ -48,8 +48,10 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
             corrupted = torch.stack((chs, ls, cts), dim=1)
             #calculate loss...
             loss, E, cE = model(batch, corrupted)
+            #zero out gradients...
+            optimizer.zero_grad()
             #loss backward
-            loss.mean().backward()
+            loss.sum().backward()
             #update parameters!
             optimizer.step()
             #getting losses...
