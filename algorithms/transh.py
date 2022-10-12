@@ -56,7 +56,6 @@ class Model(torch.nn.Module):
         ch = self.object_embedding_(ch)
         ct = self.object_embedding_(ct)
         w = self.relationship_projection_(l)
-        #w = normalize(w, dim=1, p=self.norm)
         l = self.relationship_embedding_(l)
         #calculate energies!!!
         E = self._energy(h, l, t, w)
@@ -65,10 +64,10 @@ class Model(torch.nn.Module):
         target = torch.tensor([-1], dtype=torch.long, device=self.device)
         loss = self.criterion(E, cE, target)
         #adding regularizer terms!!!
-        reg_h = self.c*torch.relu(h.norm(self.norm,dim=1) - 1)
-        reg_t = self.c*torch.relu(t.norm(self.norm,dim=1) - 1)
+        reg_h = self.c*torch.relu(h.norm(self.norm,dim=1)**2 - 1)
+        reg_t = self.c*torch.relu(t.norm(self.norm,dim=1)**2 - 1)
         reg_wl = self.c*torch.relu(((torch.sum(w*l, axis = 1)**2)/(l.norm(self.norm,dim=1)**2))-self.eps)
-        #reg_w = self.c*(torch.relu(torch.sum(w*w, axis = 1)-(1+self.eps))+torch.relu((1-self.eps)-torch.sum(w*w, axis = 1)))
+        
         loss += reg_h + reg_t + reg_wl
         return loss, E, cE
 
