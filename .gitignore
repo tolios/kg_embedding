@@ -135,7 +135,6 @@ WN11
 .DS_Store
 experiment.py
 experiment.pynb
-*.pth.tar
 saved_models
 toy
 *.sh

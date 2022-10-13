@@ -1,0 +1,8 @@
+Raw mean rank = 271.09
+Filt. mean rank = 251.10
+Raw hits@1 = 17.58%
+Filt. hits@1 = 23.94%
+Raw hits@10 = 40.01%
+Filt. hits@10 = 48.27%
+Raw hits@20 = 48.54%
+Filt. hits@20 = 55.82%

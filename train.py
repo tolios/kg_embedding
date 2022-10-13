@@ -113,5 +113,3 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     print('Training ends ...')
     #returning model as well as all energies until early stop, if it happened!
     return model, losses[:epoch_stop], energies[:epoch_stop], c_energies[:epoch_stop], val_energies[:epoch_stop]
-
-#MAYBE FIND A MORE QUICK MEAN RANK CALCULATION
