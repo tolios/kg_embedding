@@ -1,6 +1,8 @@
 # kg_embedding
 This repo is designed for implementing various embedding algorithms for knowledge graphs.
-It is under development (for my thesis). ((no GPU support (yet...)))
+It is under development (for my thesis). 
+
+((no GPU support (yet...)))
 
 ## id Mappings...
 Before one does anything, it is required to produce mappings from raw triplets to ids.
@@ -50,8 +52,11 @@ To have the correct behaviour, one should define the arguments below:
 * --valid_data
 
 (Train and valid data are only used for the filtering of scores.)
+
+To get all args:
+
 ```
-python test.py --help (to get all arguments)
+python test.py --help 
 ```
 
 ## A note...
@@ -59,5 +64,7 @@ This code does NOT guarantee the accurate implementation of the implemented algo
 
 ## References
 [1] [Bordes et al., "Translating embeddings for modeling multi- relational data," in Adv. Neural Inf. Process. Syst., 2013](http://papers.nips.cc/paper/5071-translating-embeddings-for-modeling-multi-relational-data.pdf)
+
 [2] [Zhen Wang, Jianwen Zhang, et al. Knowledge Graph Embedding by Translating on Hyperplanes. Proceedings of AAAI, 2014.](https://ojs.aaai.org/index.php/AAAI/article/view/8870)
+
 [3] [Zhiqing Sun et al., "RotatE: Knowledge Graph Embedding by Relational Rotation in Complex Space"](https://openreview.net/pdf?id=HkgEQnRqYQ)
