@@ -134,7 +134,7 @@ FB15k_237
 WN11
 .DS_Store
 experiment.py
-experiment.pynb
+experiment.ipynb
 saved_models
 toy
 *.sh

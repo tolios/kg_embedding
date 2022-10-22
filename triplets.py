@@ -1,6 +1,9 @@
+import os
 import torch
 from torch.utils.data import Dataset
 import random
+import argparse
+import json
 
 class Triplets(Dataset):
     '''
@@ -54,8 +57,8 @@ class Triplets(Dataset):
                     ])
 
             self.triplets = torch.LongTensor(self.triplets)
-            self.n_objects = n_objects
-            self.n_relationships = n_relationships 
+            self.n_objects = n_objects if not unique_objects else len(unique_objects)
+            self.n_relationships = n_relationships if not unique_relationships else len(unique_relationships)
 
     def __len__(self):
         return self.triplets.shape[0]
@@ -63,49 +66,67 @@ class Triplets(Dataset):
     def __getitem__(self, idx):
         return self.triplets[idx]
 
-def corruptor(triplets):
-    #receives a triplets dataset and produces two dictionaries!
-    #one containing all corrupted heads of each relation
-    #the other all the tails!
-    head_ = dict()
-    tail_ = dict()
-    total = set()
-    for h, l, t in triplets.triplets:
-        h, l, t = int(h), int(l), int(t)
-        #add heads for each relation
-        if l not in head_:
-            head_[l] = {h}
-        else:
-            head_[l].add(h)
-        #add tails for each relation
-        if l not in tail_:
-            tail_[l] = {t}
-        else:
-            tail_[l].add(t)
-        #find all objects!
-        total.add(h)
-        total.add(t)
-    #generate corrupted triple dictionary...
-    for h in head_:
-        head_[h] = total - head_[h]
-    for t in tail_:
-        tail_[t] = total - tail_[t]
+def corrupted_head_or_tail(golden_batch, n_objects):
+    #create corrupted triples!
+    #only change either head or tail, simple random change (could match other golden triplet)
+    #receive proper triplets
+    hs, ls, ts = golden_batch[:,0], golden_batch[:, 1], golden_batch[:, 2]
+    #coin flip
+    coin = torch.randint(high=2, size=hs.size())
+    #generate random objects
+    random_ = torch.randint(high=n_objects, size=hs.size())
+    #replace either head or tail!
+    chs = torch.where(coin == 1, random_, hs)
+    cts = torch.where(coin == 0, random_, ts)
+    #return corrupted triplets batch...
+    return torch.stack((chs, ls, cts), dim=1)
 
-    #returns dictionary containing corrupted head and tail
-    return head_, tail_
+if __name__ == "__main__":
+    '''
+    This script receives a triplet file and outputs two json files
+    entity2id and relationship2id in the directory of the given triplet file.
 
-def corrupted_triplet(triplet, corrupted_heads, corrupted_tails):
-    #receive a corrupted triplet and output a random corrupted one!
-    #returns corrupted triple!
-    h, l, t = triplet
-    h, l, t = int(h), int(l), int(t)
+    To be used as: python triplets.py triplets_path
+    '''
+    #parser for all arguments!
+    parser = argparse.ArgumentParser(description='Parsing triplets file...')
 
-    coin = random.randint(0, 1)
-    if coin:
-        #replace head with corrupted one
-        corr_h = random.choice(tuple(corrupted_heads[l]))
-        return [corr_h, l, t]
-    else:
-        #replace tail with corrupted one
-        corr_t = random.choice(tuple(corrupted_tails[l]))
-        return [h, l, corr_t]
+    #requirement arguments...
+    parser.add_argument("triplets_path",
+                        type=str, help="Path of file where triplets are saved...")
+
+    args = parser.parse_args()
+
+    #directory where triplets are stored...
+    path=os.path.dirname(args.triplets_path)
+
+    unique_objects = dict()
+    unique_relationships = dict()
+
+    n_objects = 0
+    n_relationships = 0
+
+    with open(args.triplets_path, 'r') as file:
+        for line in file:
+            #tab separated values!!!
+            h, l, t = line.split('\t')
+            #remove \n
+            t = t[:-1]
+            #we will encode the nodes and edges with unique integers!
+            #this will match with the embedding Tensors that are used to contain
+            #embeddings for our objects!
+            if h not in unique_objects:
+                unique_objects[h] = n_objects
+                n_objects += 1
+            if t not in unique_objects:
+                unique_objects[t] = n_objects
+                n_objects += 1
+            if l not in unique_relationships:
+                unique_relationships[l] = n_relationships
+                n_relationships += 1
+
+    #saving mappings...
+    with open(path+'/entity2id.json', 'w') as f:
+        json.dump(unique_objects, f)
+    with open(path+'/relationship2id.json', 'w') as f:
+        json.dump(unique_relationships, f)

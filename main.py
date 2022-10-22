@@ -1,5 +1,6 @@
 import time
 import os
+import json
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import Adam
@@ -91,21 +92,28 @@ SAVE_PATH = args.save_path
 algorithm = args.algorithm
 val_calc = args.val_calc
 
+#directory where triplets are stored... as well as ids!
+id_dir=os.path.dirname(TRAIN_PATH)
+
+#loading ids...
+with open(id_dir+'/entity2id.json', 'r') as f:
+    unique_objects = json.load(f)
+with open(id_dir+'/relationship2id.json', 'r') as f:
+    unique_relationships = json.load(f)
+
 #now update model dictionary with possible given values!
 for arg in model_args:
     model_args[arg] = vars(args)[arg]
 
 #data
 #training
-train = Triplets(path = TRAIN_PATH)
-
-unique_objects = train.unique_objects
-unique_relationships = train.unique_relationships
+train = Triplets(path = TRAIN_PATH, unique_objects = unique_objects,
+                        unique_relationships = unique_relationships)
 #validation
 val =  Triplets(path = VAL_PATH, unique_objects = unique_objects,
                         unique_relationships = unique_relationships)
 #define trainable embeddings!
-model = module.Model(train.n_objects, train.n_relationships, **model_args)
+model = module.Model(len(unique_objects), len(unique_relationships), **model_args)
 
 start = time.time()
 #training begins...

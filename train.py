@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 import matplotlib.pyplot as plt
+from triplets import *
 
 def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     epochs = 50, batch_size = 1024, val_batch_size = 1024,
@@ -37,15 +38,8 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
         #perform normalizations before entering the mini-batch.
         model.normalize()
         for i, batch in enumerate(train_loader):
-            #receive proper triplets
-            hs, ls, ts = batch[:,0], batch[:, 1], batch[:, 2]
-            #create corrupted triples!
-            coin = torch.randint(high=2, size=hs.size())
-            random_ = torch.randint(high=train.n_objects, size=hs.size())
-            chs = torch.where(coin == 1, random_, hs)
-            cts = torch.where(coin == 0, random_, ts)
-            #make triplets...
-            corrupted = torch.stack((chs, ls, cts), dim=1)
+            #get corrupted triples
+            corrupted = corrupted_head_or_tail(batch, train.n_objects)
             #calculate loss...
             loss, E, cE = model(batch, corrupted)
             #zero out gradients...

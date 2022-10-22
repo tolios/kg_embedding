@@ -70,21 +70,30 @@ torch.manual_seed(args.seed)
 #import algorithm
 module = importlib.import_module('algorithms.'+args.algorithm, ".")
 
-#data
-#training
-train = Triplets(path = train_data)
+#directory where triplets are stored... as well as ids!
+id_dir=os.path.dirname(test_data)
 
-unique_objects = train.unique_objects
-unique_relationships = train.unique_relationships
-#validation
-val =  Triplets(path = val_data, unique_objects = unique_objects,
-                        unique_relationships = unique_relationships)
+#loading ids...
+with open(id_dir+'/entity2id.json', 'r') as f:
+    unique_objects = json.load(f)
+with open(id_dir+'/relationship2id.json', 'r') as f:
+    unique_relationships = json.load(f)
+
+#data
+if filtering:
+    #training
+    train = Triplets(path = train_data, unique_objects = unique_objects,
+                            unique_relationships = unique_relationships)
+
+    #validation
+    val =  Triplets(path = val_data, unique_objects = unique_objects,
+                            unique_relationships = unique_relationships)
 #test
 test =  Triplets(path = test_data, unique_objects = unique_objects,
                         unique_relationships = unique_relationships)
 
 #load model...
-model = module.Model(train.n_objects, train.n_relationships)
+model = module.Model(len(unique_objects), len(unique_relationships))
 model = model.load(SAVE_PATH)
 
 if filtering:
