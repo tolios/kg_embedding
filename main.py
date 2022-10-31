@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 import argparse
 import importlib
 import inspect
+from torch.utils.tensorboard import SummaryWriter
+import warnings
+
+warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
 
 #parser for all arguments!
 parser = argparse.ArgumentParser(description='Training knowledge graph embeddings...',
@@ -92,8 +96,16 @@ SAVE_PATH = args.save_path
 algorithm = args.algorithm
 val_calc = args.val_calc
 
+cwd = os.getcwd()
+
 #directory where triplets are stored... as well as ids!
 id_dir=os.path.dirname(TRAIN_PATH)
+
+#create save_path containing everything!
+os.makedirs(SAVE_PATH)
+
+#init SummaryWriter
+writer = SummaryWriter(log_dir=SAVE_PATH+'/run')
 
 #loading ids...
 with open(id_dir+'/entity2id.json', 'r') as f:
@@ -115,12 +127,20 @@ val =  Triplets(path = VAL_PATH, unique_objects = unique_objects,
 #define trainable embeddings!
 model = module.Model(len(unique_objects), len(unique_relationships), **model_args)
 
+writer.add_graph(model, (train[:10], train[10:20]))
+
+#change to the model directory...
+os.chdir(SAVE_PATH)
+
 start = time.time()
 #training begins...
-model, losses, energies, c_energies, val_energies = training(model, train, val,
+model, writer, actual_epochs = training(model, train, val, writer,
                 epochs = EPOCHS, batch_size = BATCH_SIZE, val_batch_size = VAL_BATCH_SIZE,
                 lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY, patience = PATIENCE)
+
+writer.close()
 end = time.time()
+
 if val_calc:
     print('Calculating validation scores!')
     #calculating validation hits@10 and mean rank!
@@ -131,24 +151,12 @@ if val_calc:
     print(f'hits@10 = {hits_at} %')
     print(f'mean rank = {m_rank}')
 
-#actuall epochs
-actual_epochs = len(energies)
-
-#plot!
-plt.plot([x for x in range(actual_epochs)], losses, label='Training loss')
-plt.plot([x for x in range(actual_epochs)], energies, label='Uncorrupted energy')
-plt.plot([x for x in range(actual_epochs)], c_energies, label='Corrupted energy')
-plt.plot([x for x in range(actual_epochs)], val_energies, label='Validation energy')
-plt.legend()
-plt.xlabel('Epoch(s)')
-plt.title('Loss per Epoch')
+#go back...
+os.chdir(cwd)
 
 #save model!
 #create folder containing embeddings
-os.makedirs(SAVE_PATH)
 model.save(SAVE_PATH+'/model.pth.tar')
-#savefig
-plt.savefig(SAVE_PATH+'/training_fig.png')
 #save train configuration!
 with open(SAVE_PATH+'/train_config.txt', 'w') as file:
     file.write(f'ALGORITHM: {algorithm}\n')

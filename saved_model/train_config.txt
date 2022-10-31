@@ -1,13 +1,13 @@
 ALGORITHM: transe
 SEED: 42
-TRAIN_PATH: ./FB15k_237/train.txt
-VAL_PATH: ./FB15k_237/valid.txt
+TRAIN_PATH: ./datasets/FB15k_237/train.txt
+VAL_PATH: ./datasets/FB15k_237/valid.txt
 NUM_EMBEDDINGS_OBJECT: 14505
 NUM_EMBEDDINGS_RELATIONSHIP: 237
 EPOCHS: 50
 ACTUAL_EPOCHS: 47
 PATIENCE: 20
-BATCH_SIZE: 128
+BATCH_SIZE: 256
 VAL_BATCH_SIZE: 1024
 LEARNING_RATE: 0.01
 WEIGHT_DECAY: 0.0
@@ -16,4 +16,4 @@ norm: 2
 emb_dim: 50
 margin: 1.0
 device: None
-Training time: 6.2625 min(s)
+Training time: 3.7867 min(s)

@@ -6,8 +6,10 @@ from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 import matplotlib.pyplot as plt
 from triplets import *
+from torch.utils.tensorboard import SummaryWriter
 
-def training(model: torch.nn.Module, train: Dataset, val: Dataset,
+def training(model: torch.nn.Module,
+    train: Dataset, val: Dataset, writer: SummaryWriter,
     epochs = 50, batch_size = 1024, val_batch_size = 1024,
     lr = 0.01, weight_decay = 0.0005, patience = -1):
     '''
@@ -29,6 +31,10 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
     lowest_val_energy = 1e5
     stop_counter = 1
     epoch_stop = 0 #keeps track of last epoch of checkpoint...
+    #getting initial weights...
+    model_dict = model.state_dict()
+    for model_part in model_dict:
+        writer.add_histogram(model_part, model_dict[model_part], 0)
     #training ...
     print('Training begins ...')
     for epoch in range(1, epochs + 1):
@@ -67,10 +73,15 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
             ', val_energy: ', "{:.4f}".format(running_val_E/j),
             ', time: ', "{:.4f}".format((time.time()-t_start)/60), 'min(s)')
         #collecting loss and energies!
-        losses.append(running_loss/i)
-        energies.append(running_E/i)
-        c_energies.append(running_cE/i)
-        val_energies.append(running_val_E/j)
+        writer.add_scalar('Loss', running_loss/i, epoch)
+        writer.add_scalar('Golden Energy', running_E/i, epoch)
+        writer.add_scalar('Corrupted Energy', running_cE/i, epoch)
+        writer.add_scalar('Val Energy', running_val_E/j, epoch)
+        #collecting model weights!
+        model_dict = model.state_dict()
+        for model_part in model_dict:
+            writer.add_histogram(model_part, model_dict[model_part], epoch)
+
         #implementation of early stop using val_energy (fastest route (could use mean_rank for example))
         if patience != -1:
             if lowest_val_energy >= running_val_E/j:
@@ -105,5 +116,5 @@ def training(model: torch.nn.Module, train: Dataset, val: Dataset,
         os.remove('./checkpoint.pth.tar')
 
     print('Training ends ...')
-    #returning model as well as all energies until early stop, if it happened!
-    return model, losses[:epoch_stop], energies[:epoch_stop], c_energies[:epoch_stop], val_energies[:epoch_stop]
+    #returning model as well as writer and actual last epoch (early stopping)...
+    return model, writer, epoch_stop
